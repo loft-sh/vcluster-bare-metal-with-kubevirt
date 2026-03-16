@@ -1,0 +1,63 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: br0-vcluster-one
+  namespace: p-default
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "type": "bridge",
+      "bridge": "br0",
+      "isDefaultGateway": false,
+      "ipam": {}
+    }
+
+---
+apiVersion: management.loft.sh/v1
+kind: VirtualClusterInstance
+metadata:
+  name: one
+  namespace: p-default
+spec:
+  template:
+    helmRelease:
+      chart:
+        version: 0.31.0-rc.1
+      values: |
+        controlPlane:
+          backingStore:
+            etcd:
+              embedded:
+                enabled: true
+          endpoint: 192.168.100.2:8443
+          advanced:
+            kubeVip:
+              enabled: true
+              interface: net1
+              gateway: 192.168.100.1/24
+          statefulSet:
+            pods:
+              annotations:
+                k8s.v1.cni.cncf.io/networks: p-default/br0-vcluster-one
+            env:
+              - name: VCLUSTER_NODECLAIM_WAIT_TIMEOUT
+                value: 1h
+        privateNodes:
+          enabled: true
+          autoNodes:
+            - provider: metal3
+              static:
+                - name: bare-metal
+                  quantity: 1
+              properties:
+                metal3.vcluster.com/network-cidr: 192.168.100.1/24
+                metal3.vcluster.com/network-ip-range: 192.168.100.10-192.168.100.20
+    pro:
+      enabled: true
+  clusterRef:
+    cluster: loft-cluster
+    namespace: loft-default-v-one
+    virtualCluster: one
+  owner:
+    user: admin

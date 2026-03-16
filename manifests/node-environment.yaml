@@ -1,0 +1,13 @@
+apiVersion: storage.loft.sh/v1
+kind: NodeEnvironment
+metadata:
+  name: bare-metal
+  namespace: p-default
+spec:
+  providerRef: metal3
+  owner:
+    user: admin
+  properties:
+    metal3.vcluster.com/network-cidr: 192.168.100.1/24
+    metal3.vcluster.com/network-ip-range: 192.168.100.100-192.168.100.120
+    metal3.vcluster.com/dns-servers: "1.1.1.1"

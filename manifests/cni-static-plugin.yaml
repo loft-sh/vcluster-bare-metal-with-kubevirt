@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cni-static-plugin
+  namespace: kube-system
+  labels:
+    app: cni-static-plugin
+spec:
+  selector:
+    matchLabels:
+      app: cni-static-plugin
+  template:
+    metadata:
+      labels:
+        app: cni-static-plugin
+    spec:
+      hostNetwork: true
+      tolerations:
+      - operator: Exists
+      initContainers:
+      - name: install
+        image: alpine:3.19
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+
+          if [ -f "${CNI_INSTALL_DIR}/static" ]; then
+            echo "static plugin already installed"
+            exit 0
+          fi
+
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64)  ARCH=amd64 ;;
+            aarch64) ARCH=arm64 ;;
+            armv7l)  ARCH=arm ;;
+            *) echo "unsupported architecture: $ARCH"; exit 1 ;;
+          esac
+
+          apk add --no-cache curl
+          URL="https://github.com/containernetworking/plugins/releases/download/${CNI_VERSION}/cni-plugins-linux-${ARCH}-${CNI_VERSION}.tgz"
+          echo "Downloading $URL"
+          curl -fsSL "$URL" | tar -xz -C "${CNI_INSTALL_DIR}" ./static
+          echo "installed static plugin to ${CNI_INSTALL_DIR}"
+        env:
+        - name: CNI_VERSION
+          value: "v1.9.0"
+        - name: CNI_INSTALL_DIR
+          value: "/host/opt/cni/bin"
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: cni-bin
+          mountPath: /host/opt/cni/bin
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.9
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+      volumes:
+      - name: cni-bin
+        hostPath:
+          path: /opt/cni/bin
+          type: DirectoryOrCreate

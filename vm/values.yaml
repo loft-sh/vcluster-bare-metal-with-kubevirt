@@ -1,0 +1,42 @@
+namespace: default
+
+vms:
+  - name: bare-metal-1
+    mac: "02:00:00:00:00:01"
+    cpu:
+      cores: 2
+      millicores: "2000m"
+    memory: 4Gi
+    disk:
+      size: 100Gi
+    bridge: br0
+    bmh:
+      ip: 192.168.100.10/24
+      gateway: 192.168.100.1
+      dns: 8.8.8.8
+      bmc:
+        username: admin
+        password: admin
+      boot:
+        namespace: default
+        rootDevice: /dev/vda
+
+  - name: bare-metal-2
+    mac: "02:00:00:00:00:02"
+    cpu:
+      cores: 2
+      millicores: "2000m"
+    memory: 4Gi
+    disk:
+      size: 100Gi
+    bridge: br0
+    bmh:
+      ip: 192.168.100.11/24
+      gateway: 192.168.100.1
+      dns: 8.8.8.8
+      bmc:
+        username: admin
+        password: admin
+      boot:
+        namespace: default
+        rootDevice: /dev/vda

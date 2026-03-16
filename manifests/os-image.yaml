@@ -1,0 +1,12 @@
+apiVersion: storage.loft.sh/v1
+kind: OSImage
+metadata:
+  name: ubuntu2404-20260307
+spec:
+  displayName: Ubuntu 24.04 LTS (Noble) - 2026-03-07
+  owner:
+    user: admin
+  properties:
+    metal3.vcluster.com/image-checksum: 931dba2bec09d574f032485bda386c664481ef01208371957af28fad40bc7f2d
+    metal3.vcluster.com/image-checksum-type: sha256
+    metal3.vcluster.com/image-url: https://cloud-images.ubuntu.com/noble/20260307/noble-server-cloudimg-amd64.img

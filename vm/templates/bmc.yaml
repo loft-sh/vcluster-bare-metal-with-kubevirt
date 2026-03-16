@@ -1,0 +1,136 @@
+{{- range .Values.vms }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .name }}-bmc
+  namespace: {{ $.Values.namespace }}
+stringData:
+  username: {{ .bmh.bmc.username | quote }}
+  password: {{ .bmh.bmc.password | quote }}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .name }}-virtbmc
+  namespace: {{ $.Values.namespace }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .name }}-virtbmc
+  namespace: {{ $.Values.namespace }}
+rules:
+- apiGroups: ["kubevirt.io"]
+  resources: ["virtualmachines"]
+  verbs: ["get", "list", "watch", "update"]
+- apiGroups: ["subresources.kubevirt.io"]
+  resources: ["virtualmachines/start", "virtualmachines/stop", "virtualmachines/restart"]
+  verbs: ["update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .name }}-virtbmc
+  namespace: {{ $.Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .name }}-virtbmc
+subjects:
+- kind: ServiceAccount
+  name: {{ .name }}-virtbmc
+  namespace: {{ $.Values.namespace }}
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .name }}-virtbmc
+  namespace: {{ $.Values.namespace }}
+  labels:
+    kubevirt.io/virtualmachinebmc-name: {{ .name }}
+    kubevirt.io/vm-name: {{ .name }}
+spec:
+  serviceName: {{ .name }}-virtbmc
+  replicas: 1
+  selector:
+    matchLabels:
+      kubevirt.io/virtualmachinebmc-name: {{ .name }}
+  template:
+    metadata:
+      labels:
+        kubevirt.io/virtualmachinebmc-name: {{ .name }}
+        kubevirt.io/vm-name: {{ .name }}
+    spec:
+      serviceAccountName: {{ .name }}-virtbmc
+      containers:
+      - name: virtbmc
+        image: ghcr.io/loft-sh/kubevirtbmc/virtbmc:v0.7.0-vcluster
+        args:
+        - --address
+        - 0.0.0.0
+        - --ipmi-port
+        - "10623"
+        - --redfish-port
+        - "10080"
+        - {{ $.Values.namespace }}
+        - {{ .name }}
+        env:
+        - name: BMC_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .name }}-bmc
+              key: username
+        - name: BMC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .name }}-bmc
+              key: password
+        ports:
+        - containerPort: 10623
+          name: ipmi
+          protocol: UDP
+        - containerPort: 10080
+          name: redfish
+      - name: caddy
+        image: caddy:2
+        command:
+        - sh
+        - -c
+        - |
+          cat <<EOF > /tmp/Caddyfile
+          {{ .name }}-virtbmc.{{ $.Values.namespace }}.svc.cluster.local:443 {
+              tls internal
+              reverse_proxy localhost:10080
+          }
+          EOF
+          caddy run --config /tmp/Caddyfile
+        ports:
+        - containerPort: 443
+          name: https
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}-virtbmc
+  namespace: {{ $.Values.namespace }}
+  labels:
+    kubevirt.io/virtualmachinebmc-name: {{ .name }}
+    kubevirt.io/vm-name: {{ .name }}
+spec:
+  selector:
+    kubevirt.io/virtualmachinebmc-name: {{ .name }}
+  ports:
+  - name: ipmi
+    port: 623
+    protocol: UDP
+    targetPort: ipmi
+  - name: https
+    port: 443
+    targetPort: https
+{{- end }}

@@ -1,0 +1,14 @@
+apiVersion: storage.loft.sh/v1
+kind: NodeClaim
+metadata:
+  name: bare-metal-worker
+  namespace: p-default
+spec:
+  providerRef: metal3
+  typeRef: metal3.vm
+  environmentRef: bare-metal
+  owner:
+    user: admin
+  properties:
+    vcluster.com/os-image: ubuntu2404-20260307
+    vcluster.com/ssh-keys: demo

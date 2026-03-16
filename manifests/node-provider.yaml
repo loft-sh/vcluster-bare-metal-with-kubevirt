@@ -1,0 +1,29 @@
+apiVersion: storage.loft.sh/v1
+kind: NodeProvider
+metadata:
+  name: metal3
+spec:
+  displayName: "Metal3 Bare Metal Hosts"
+  metal3:
+    clusterRef:
+      cluster: loft-cluster
+      namespace: default
+    deploy:
+      multus:
+        enabled: true
+      metal3:
+        enabled: true
+      dhcp:
+        enabled: true
+        helmValues: |
+          networkAttachmentDefinition:
+            vip: 192.168.100.4/24
+    nodeTypes:
+      - name: vm
+        resources:
+          cpu: 2
+          memory: 8Gi
+        bareMetalHosts:
+          selector:
+            matchExpressions:
+              - { key: app.kubernetes.io/name, operator: In, values: [bare-metal-1, bare-metal-2] }

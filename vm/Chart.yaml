@@ -1,0 +1,5 @@
+apiVersion: v2
+name: vm
+description: KubeVirt VMs with BMC for bare metal simulation
+type: application
+version: 0.1.0

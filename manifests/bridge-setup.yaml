@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: bridge-setup
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: bridge-setup
+  template:
+    metadata:
+      labels:
+        app: bridge-setup
+    spec:
+      hostNetwork: true
+      containers:
+      - name: bridge-setup
+        image: nicolaka/netshoot:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            set -e
+            DEFAULT_IFACE=$(ip route show default | awk '/default/ {print $5}' | head -n1)
+
+            if ! ip link show br0 &>/dev/null; then
+                ip link add name br0 type bridge
+            fi
+            if ! ip addr show br0 | grep -q "192.168.100.1/24"; then
+                ip addr add 192.168.100.1/24 dev br0
+            fi
+            ip link set br0 up
+
+            if ! iptables -t nat -C POSTROUTING -s 192.168.100.0/24 -o $DEFAULT_IFACE -j MASQUERADE 2>/dev/null; then
+                iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -o $DEFAULT_IFACE -j MASQUERADE
+            fi
+
+            sleep infinity
+        securityContext:
+          privileged: true
