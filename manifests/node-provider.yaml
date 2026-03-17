@@ -20,10 +20,3 @@ spec:
             vip: 192.168.100.4/24
     nodeTypes:
       - name: vm
-        resources:
-          cpu: 2
-          memory: 8Gi
-        bareMetalHosts:
-          selector:
-            matchExpressions:
-              - { key: app.kubernetes.io/name, operator: In, values: [bare-metal-1, bare-metal-2] }

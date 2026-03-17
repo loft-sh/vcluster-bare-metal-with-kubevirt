@@ -26,13 +26,11 @@ Run vCluster's metal3 bare metal node provider locally using KubeVirt VMs as fak
 make vind-up
 
 # Install everything (cert-manager, kubevirt, bridge, platform, node provider, etc.)
-# You will be prompted for a platform license token on first run.
+# You will be prompted for a valid platform license token.
 make install
 
-# Wait a minute for the NodeProvider to deploy Metal3, Ironic, and the DHCP server.
-sleep 60
-
-# Create the KubeVirt VMs, BMC deployments & BareMetalHost resources
+# Wait for the NodeProvider to deploy Metal3/Ironic (check the platform UI or
+# kubectl get statefulset metal3 -n default), then create VMs + BMH resources.
 make create-vms
 ```
 
@@ -41,7 +39,8 @@ make create-vms
 ### Provision BareMetalHosts manually
 
 After `make create-vms`, the BareMetalHost resources appear in the platform UI.
-You can inspect, provision, or deprovision them from there.
+Wait for them to become `available` before provisioning — Ironic needs to inspect each host first, which takes a few minutes.
+You can track progress in the UI or with `kubectl get baremetalhost -A`.
 
 To provision a single machine manually:
 
