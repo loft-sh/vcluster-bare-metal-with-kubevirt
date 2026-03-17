@@ -58,7 +58,13 @@ This creates a VirtualClusterInstance that automatically provisions bare metal n
 make create-vcluster
 ```
 
-The vCluster uses kube-vip on the bridge network and requests nodes from the metal3 NodeProvider.
+The vCluster uses kube-vip on the bridge network and requests nodes from the metal3 NodeProvider. What happens next:
+
+1. The platform creates a **NodeClaim** for the vCluster — check with `kubectl get nodeclaim -A`
+2. A BareMetalHost is selected and **provisioned** (Ironic writes the OS image) — watch with `kubectl get baremetalhost -A`
+3. The machine boots, runs cloud-init, and **joins** the vCluster as a node — `kubectl get nodes` against the vCluster
+
+This takes several minutes end-to-end.
 
 ### SSH into a provisioned machine
 
