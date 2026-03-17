@@ -60,6 +60,23 @@ make create-vcluster
 
 The vCluster uses kube-vip on the bridge network and requests nodes from the metal3 NodeProvider.
 
+### SSH into a provisioned machine
+
+Create a LoadBalancer service that forwards to the provisioned machine's SSH port:
+
+```bash
+make create-ssh-service
+```
+
+The default IP (`192.168.100.100`) matches if this is the only machine in the network. If not, edit `manifests/ssh-service.yaml` to match the machine's IP.
+
+Then SSH in:
+
+```bash
+LB_IP=$(kubectl get svc bare-metal-ssh -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+ssh -i ssh-demo-key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@$LB_IP
+```
+
 ### Individual targets
 
 | Target                      | Description                                      |

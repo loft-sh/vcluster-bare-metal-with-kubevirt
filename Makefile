@@ -1,4 +1,4 @@
-.PHONY: vind-up vind-down install install-cert-manager install-cni-static install-kubevirt install-bridge install-platform reset-admin-password install-os-image install-ssh-key install-node-provider install-network-environment create-vms create-machine create-vcluster
+.PHONY: vind-up vind-down install install-cert-manager install-cni-static install-kubevirt install-bridge install-platform reset-admin-password install-os-image install-ssh-key install-node-provider install-network-environment create-vms create-machine create-vcluster create-ssh-service
 
 CLUSTER_NAME ?= bare-metal-fun
 KUBECONFIG := $(CURDIR)/kubeconfig
@@ -85,3 +85,6 @@ create-machine:
 
 create-vcluster:
 	kubectl apply -f manifests/vcluster.yaml
+
+create-ssh-service:
+	kubectl apply -f manifests/ssh-service.yaml
