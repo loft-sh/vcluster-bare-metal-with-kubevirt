@@ -1,4 +1,3 @@
-image: ghcr.io/loft-sh/vcluster-platform:v4.8.0
 config:
   loftHost: https://127.0.0.1
 service:
