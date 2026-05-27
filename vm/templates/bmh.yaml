@@ -11,7 +11,7 @@ metadata:
     metal3.vcluster.com/dns-servers: {{ .bmh.dns }}
     metal3.vcluster.com/gateway: {{ .bmh.gateway }}
 spec:
-  online: true
+  online: false
   automatedCleaningMode: disabled
   bootMACAddress: {{ .mac | quote }}
   bmc:
