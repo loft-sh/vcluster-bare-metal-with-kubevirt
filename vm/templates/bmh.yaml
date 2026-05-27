@@ -13,6 +13,7 @@ metadata:
 spec:
   online: false
   automatedCleaningMode: disabled
+  hardwareProfile: empty
   bootMACAddress: {{ .mac | quote }}
   bmc:
     address: redfish://{{ .name }}-virtbmc.default.svc.cluster.local:443
