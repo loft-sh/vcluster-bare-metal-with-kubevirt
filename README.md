@@ -158,6 +158,15 @@ LB_IP=$(kubectl get svc bare-metal-ssh -o jsonpath='{.status.loadBalancer.ingres
 ssh -i ssh-demo-key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@$LB_IP
 ```
 
+**If you get `Permission denied (publickey)` right after provisioning finishes**,
+this is usually just timing, not a real problem: `BareMetalHost` reaching
+`provisioned` only means Ironic finished writing the OS image and told the
+machine to boot — it has no visibility into the guest afterward. The actual
+boot (BIOS/UEFI POST, kernel, then cloud-init running through its stages,
+including applying the SSH key) happens entirely outside what Metal3/Ironic
+reports, and can take anywhere from 30 seconds to a couple of minutes. Wait a
+bit and retry before assuming the key itself is wrong.
+
 ### Individual targets
 
 | Target                      | Description                                      |
