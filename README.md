@@ -66,12 +66,40 @@ resource "aws_instance" "this" {
 make vind-up
 
 # Install everything (cert-manager, kubevirt, bridge, platform, node provider, etc.)
-# You will be prompted for a valid platform license token.
+# You will be prompted for a valid platform license token and admin password.
 make install
 
 # Wait for the NodeProvider to deploy Metal3/Ironic (check the platform UI or
 # kubectl get statefulset metal3 -n default), then create VMs + BMH resources.
 make create-vms
+```
+
+## Accessing the Platform UI
+
+`manifests/platform-values.yaml` configures the platform to expect access at
+`https://127.0.0.1` (`config.loftHost`), via a local port-forward rather than
+the `loft` Service's `LoadBalancer` IP directly (that IP lives on vind's
+internal Docker bridge network and generally isn't reachable from outside the
+machine running the vind cluster).
+
+If you're working on a remote host (e.g. an EC2 instance over SSH), chain a
+`kubectl port-forward` with an SSH tunnel:
+
+```bash
+# On the remote host, in a session you leave running:
+kubectl port-forward -n vcluster-platform svc/loft 8443:443
+
+# From your local machine, in a separate terminal:
+ssh -L 8443:localhost:8443 <user>@<remote-host>
+```
+
+Then open `https://127.0.0.1:8443` in your browser (accept the self-signed
+cert warning — `insecureSkipVerify: true` in `platform-values.yaml` expects this).
+
+Default login is `admin`. The password is set as part of the install process. 
+
+```bash
+make reset-admin-password
 ```
 
 ## Usage
