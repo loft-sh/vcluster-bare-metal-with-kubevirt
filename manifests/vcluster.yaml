@@ -52,6 +52,7 @@ spec:
                   quantity: 1
               properties:
                 vcluster.com/os-image: ubuntu2404-20260307
+                vcluster.com/ssh-keys: demo
     pro:
       enabled: true
   clusterRef:
