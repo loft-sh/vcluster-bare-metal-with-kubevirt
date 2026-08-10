@@ -10,6 +10,46 @@ Run vCluster's metal3 bare metal node provider locally using KubeVirt VMs as fak
 - helm
 - A host with KVM/hypervisor support and enough resources for the VMs (~16GB RAM, 4+ CPU cores)
 
+### Sizing note
+
+The ~16GB/4-core figure above is for the two default VMs *alone* (each requests
+2 CPU cores / 4Gi memory — see `vm/values.yaml`). It does not include the
+platform's own footprint: cert-manager, KubeVirt, CDI, Metal3, Ironic,
+vCluster Platform, and Prometheus together typically consume another
+~3 CPU cores / ~5Gi memory on the single vind node before you even create a
+VM. Size your host for VM requirements *plus* that overhead, with some margin
+for the later `make create-vcluster` step, which adds a Tenant Cluster control
+plane on top. In practice this means a real-world minimum closer to 8 vCPU /
+16GB, and more comfortably 16 vCPU / 32GB.
+
+If you're provisioning the host on AWS with Terraform and using `cpu_options`
+to enable nested virtualization (required for KubeVirt to get real `/dev/kvm`
+access — supported on 8th-gen Intel families: c8i/m8i/r8i and flex variants),
+note that `core_count` and `threads_per_core` are **required together** by
+AWS whenever `cpu_options` is set at all, and they silently override the
+instance type's native vCPU count if they don't match it. A hardcoded
+`core_count` left over from a smaller instance type will cap you at that
+smaller CPU count forever, no matter how large an instance type you pick —
+and unlike memory, there's no error, it just quietly under-provisions you.
+Prefer computing it from the instance type instead of hardcoding it:
+
+```hcl
+data "aws_ec2_instance_type" "selected" {
+  instance_type = var.instance_type
+}
+
+resource "aws_instance" "this" {
+  instance_type = var.instance_type
+  # ...
+
+  cpu_options {
+    core_count             = data.aws_ec2_instance_type.selected.default_cores
+    threads_per_core       = data.aws_ec2_instance_type.selected.default_threads_per_core
+    nested_virtualization  = "enabled"
+  }
+}
+```
+
 ## Setup
 
 - **KubeVirt VMs** with a Redfish BMC shim (`virtbmc`) acting as fake bare metal servers
@@ -97,6 +137,16 @@ ssh -i ssh-demo-key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null 
 | `make reset-admin-password` | Reset the platform admin password                |
 
 ## Troubleshooting
+
+### VMs stuck `Pending` with `Insufficient cpu`/`Insufficient memory`
+
+See the [Sizing note](#sizing-note) above — this is a single-node cluster, so
+the platform's own components and the KubeVirt VMs all compete for the same
+node's capacity. Check current headroom with:
+
+```bash
+kubectl describe node | grep -A10 "Allocated resources"
+```
 
 ### BareMetalHost stuck in `inspecting` indefinitely
 
