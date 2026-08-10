@@ -101,4 +101,7 @@ create-vcluster:
 	kubectl apply -f manifests/vcluster.yaml
 
 create-ssh-service:
-	kubectl apply -f manifests/ssh-service.yaml
+	$(eval BMH_IP := $(shell kubectl get baremetalhost -n default -l metal3.vcluster.com/node-claim \
+		-o jsonpath='{.items[0].metadata.annotations.metal3\.vcluster\.com/ip-address}' | cut -d/ -f1))
+	@echo "Targeting claimed BareMetalHost at $(BMH_IP)"
+	sed "s/PLACEHOLDER_IP/$(BMH_IP)/" manifests/ssh-service.yaml | kubectl apply -f -

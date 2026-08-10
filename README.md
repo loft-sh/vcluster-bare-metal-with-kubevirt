@@ -142,7 +142,14 @@ Create a LoadBalancer service that forwards to the provisioned machine's SSH por
 make create-ssh-service
 ```
 
-The default IP (`192.168.100.100`) matches if this is the only machine in the network. If not, edit `manifests/ssh-service.yaml` to match the machine's IP.
+This looks up whichever `BareMetalHost` is currently claimed (labeled
+`metal3.vcluster.com/node-claim`) and points the service at its real IP
+automatically — no manual editing needed.
+
+**Caveat:** this resolves the IP once, at the moment you run the command. If
+the claimed machine later changes (e.g. after a reclaim swaps in a different
+`BareMetalHost`), the service will keep pointing at the old IP until you
+re-run `make create-ssh-service`.
 
 Then SSH in:
 
