@@ -96,6 +96,59 @@ ssh -i ssh-demo-key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null 
 | `make create-vcluster`      | Create a vCluster with auto-nodes                |
 | `make reset-admin-password` | Reset the platform admin password                |
 
+## Troubleshooting
+
+### BareMetalHost stuck in `inspecting` indefinitely
+
+Ironic PXE-boots each host into a diagnostic ramdisk to collect hardware
+inventory before marking it `available`. If that never completes, the most
+common cause is the `dhcp-proxy` pod (deployed by the `metal3` NodeProvider
+alongside Multus) not actually having its `br0`/`192.168.100.4` network
+interface — check:
+
+```bash
+kubectl get pod -n default dhcp-proxy-0
+kubectl logs -n default dhcp-proxy-0 -c server --previous
+```
+
+An error like `listen udp 192.168.100.4:69: bind: cannot assign requested
+address` means the pod never got its Multus-attached interface. This happens
+when the `dhcp-proxy` pod's sandbox is created in the brief window before
+Multus's CNI config is written to `/etc/cni/net.d` on the node — Multus being
+healthy *afterward* doesn't fix a pod whose network was already set up
+without it, since CNI attachment happens once, at sandbox creation, and isn't
+retried by restarting the container. `make install-node-provider` now waits
+for Multus and recreates the pod defensively to close this window, but if you
+hit it anyway (e.g. by re-running `kubectl apply -f manifests/node-provider.yaml`
+directly), the fix is the same:
+
+```bash
+kubectl wait --for=jsonpath='{.status.numberReady}'=1 daemonset/kube-multus-ds -n default --timeout=180s
+kubectl delete pod -n default dhcp-proxy-0
+```
+
+You can confirm the fix by checking the pod picked up its second interface:
+
+```bash
+kubectl debug -n default dhcp-proxy-0 -it --image=nicolaka/netshoot -- ip addr show
+# look for net1 with an address in 192.168.100.0/24
+```
+
+Once DHCP is answering, force the stuck host to retry its PXE boot rather
+than waiting for it to time out on its own:
+
+```bash
+kubectl annotate baremetalhost <name> reboot.metal3.io=""
+```
+
+Watch progress without a VM console via the DHCP proxy's logs (shows the live
+DHCP/TFTP exchange) or the BareMetalHost's own status:
+
+```bash
+kubectl logs -n default dhcp-proxy-0 -c server -f
+kubectl describe baremetalhost <name>
+```
+
 ## Tear Down
 
 ```bash
