@@ -51,7 +51,7 @@ spec:
                 - name: bare-metal
                   quantity: 1
               properties:
-                vcluster.com/os-image: ubuntu2404-20260307
+                vcluster.com/os-image: ubuntu2404-20260801
     pro:
       enabled: true
   clusterRef:
